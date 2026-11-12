@@ -68,7 +68,8 @@ section{padding:44px var(--pad) 0}
 /* a foto é a protagonista: ocupa a largura toda, sem nada por cima do rosto */
 .cover{position:relative;height:clamp(430px,66svh,620px);overflow:hidden;border-radius:0 0 var(--r-l) var(--r-l);background:var(--sage)}
 .cover-btn{display:block;position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;background:none;cursor:zoom-in}
-.cover-img{width:100%;height:100%;object-fit:cover;object-position:var(--foco,50% 22%);animation:settle 1.6s cubic-bezier(.2,.7,.2,1) both}
+.cover-img{width:100%;height:100%;object-fit:cover;object-position:var(--foco,50% 22%);opacity:0}
+.cover-img.ready{animation:settle 1.6s cubic-bezier(.2,.7,.2,1) both}   /* só aparece quando a foto terminou de carregar */
 .cover::after{content:"";position:absolute;left:0;right:0;bottom:0;height:24%;background:linear-gradient(180deg,rgba(29,58,61,0),rgba(29,58,61,.3));pointer-events:none}
 .zoom-hint{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.88);color:var(--ink);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:700;box-shadow:var(--shadow);pointer-events:none}
 .zoom-hint svg{width:16px;height:16px}
@@ -132,6 +133,34 @@ section{padding:44px var(--pad) 0}
 .obs{color:var(--mut);font-size:14px;margin-top:12px}
 .place .go{padding:0 22px 22px}
 
+/* ============ Galeria (faixa deslizante) ============ */
+.rail-wrap{padding-top:44px}
+.rail-wrap .head{padding:0 var(--pad)}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px var(--pad) 12px;scroll-padding-left:var(--pad);overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.rail::-webkit-scrollbar{display:none}
+.slide{flex:0 0 74%;max-width:300px;aspect-ratio:4/5;border:0;padding:0;border-radius:var(--r-m);background:var(--sage);scroll-snap-align:start;overflow:hidden;cursor:zoom-in;box-shadow:var(--shadow);transition:transform .15s ease}
+.slide:active{transform:scale(.98)}
+.slide img{width:100%;height:100%;object-fit:cover}
+.hint{color:var(--mut);font-size:13.5px;padding:2px var(--pad) 0}
+
+/* ============ Pulso discreto no "atendendo agora" ============ */
+@media(prefers-reduced-motion:no-preference){
+  .dot.on{animation:pulse 2.4s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,158,106,.45)}70%,100%{box-shadow:0 0 0 9px rgba(47,158,106,0)}}
+}
+
+/* ============ Efeitos ligados à rolagem (só onde o navegador suporta; sem JavaScript) ============ */
+@supports (animation-timeline: view()) {
+  @media(prefers-reduced-motion:no-preference){
+    /* a foto desce mais devagar que a página e cresce de leve */
+    .cover-btn{animation:parallax linear both;animation-timeline:scroll(root);animation-range:0 640px}
+    @keyframes parallax{to{transform:translateY(70px) scale(1.07)}}
+    /* o pacote ganha destaque conforme chega ao centro da tela */
+    .pack{animation:focus linear both;animation-timeline:view();animation-range:entry 0% cover 38%}
+    @keyframes focus{from{opacity:.55;transform:scale(.955)}to{opacity:1;transform:none}}
+  }
+}
+
 /* ============ Rodapé e barra ============ */
 footer{padding:40px var(--pad) 0;text-align:center;color:var(--mut);font-size:13px}
 footer a{text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
@@ -148,6 +177,7 @@ footer a{text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .cover-img,.status,.id h1,.tag{animation:none}
+  .cover-img{opacity:1}
   .rv{opacity:1;transform:none;transition:none}
   .bar,.toast,.btn{transition:none}
 }
@@ -168,6 +198,9 @@ const P = {
   cref: "CREF 000000-G/PR",
   tagline: "Personal trainer. Treino individualizado e acompanhamento de perto.",
   foto: "",                           // foto REAL do personal ("foto.jpg" ou link). Se preencher, substitui a de exemplo
+  galeriaTitulo: "Treino de perto",
+  /* Faixa de fotos de treino (opcional; apague a lista para esconder). Cada item: código do Unsplash (só na prévia) ou caminho/link de uma foto real. */
+  galeria: ["photo-1746559845100-0f5a36bfdbe6", "photo-1548690312-e3b507d8c110", "photo-1728485302581-6d37f2273027", "photo-1594381898411-846e7d193883"],
   fotoFoco: "50% 18%",                // onde fica o rosto na foto: "horizontal vertical" (ex.: "50% 10%" = mais para cima)
   fotoExemplo: "photo-1746559845070-10aa66800280",   // foto de banco (Unsplash) só para a prévia; apague na página real
   whatsapp: "5544999999999",          // DDI + DDD + número, só dígitos
@@ -227,6 +260,8 @@ const P = {
   const mapQuery = encodeURIComponent(P.local?.endereco || "");
   const unsplash = (w) => `https://images.unsplash.com/${P.fotoExemplo}?auto=format&fit=crop&w=${w}&h=${Math.round(w * 1.25)}&q=70`;
   const coverSrc = P.foto || (P.fotoExemplo ? unsplash(1200) : "");
+  /* item da galeria: "photo-..." = Unsplash (prévia); qualquer outro texto = caminho ou link da foto real */
+  const galUrl = (item, w) => /^photo-/.test(item) ? `https://images.unsplash.com/${item}?auto=format&fit=crop&w=${w}&h=${Math.round(w * 1.25)}&q=70` : item;
   /* no celular carrega a foto menor (mais rápido); só a foto de exemplo tem versões de vários tamanhos */
   const coverSet = !P.foto && P.fotoExemplo ? `srcset="${esc(unsplash(600))} 600w, ${esc(unsplash(900))} 900w, ${esc(unsplash(1200))} 1200w" sizes="(min-width: 600px) 540px, 100vw"` : "";
 
@@ -251,10 +286,10 @@ const P = {
     cover: () => `
       <header>
         <div class="cover" ${P.fotoFoco ? `style="--foco:${esc(P.fotoFoco)}"` : ""}>
-          ${coverSrc ? `<button class="cover-btn" type="button" id="zoom" aria-label="Ampliar a foto de ${esc(P.nome)}">
+          ${coverSrc ? `<button class="cover-btn" type="button" data-full="${esc(coverSrc)}" data-alt="Foto de ${esc(P.nome)} ampliada" aria-label="Ampliar a foto de ${esc(P.nome)}">
             <img class="cover-img" src="${esc(coverSrc)}" ${coverSet} width="1200" height="1500" alt="Foto de ${esc(P.nome)}" fetchpriority="high" decoding="async">
-            <span class="zoom-hint" aria-hidden="true">${ICON_ZOOM} Ampliar</span>
-          </button>` : ""}
+          </button>
+          <span class="zoom-hint" aria-hidden="true">${ICON_ZOOM} Ampliar</span>` : ""}
         </div>
         <div class="id">
           <p class="status" role="status"><span class="dot" id="dot" aria-hidden="true"></span><span id="openTxt">Atendimento</span></p>
@@ -278,6 +313,16 @@ const P = {
         <h2 class="title" id="t-sobre">${esc(P.sobreTitulo || "Quem sou eu")}</h2>
         ${list(P.sobre).map((t) => `<p>${esc(t)}</p>`).join("")}
         ${list(P.destaques).length ? `<ul class="checks">${list(P.destaques).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
+      </section>`,
+
+    gallery: () => !list(P.galeria).length ? "" : `
+      <section class="rail-wrap rv" aria-labelledby="t-galeria">
+        <div class="head"><h2 class="title" id="t-galeria">${esc(P.galeriaTitulo || "Treino de perto")}</h2></div>
+        <div class="rail" tabindex="0" role="region" aria-label="Fotos de treino">
+          ${list(P.galeria).map((g, i) => `<button class="slide" type="button" data-full="${esc(galUrl(g, 1200))}" data-alt="Foto de treino ${i + 1} ampliada" aria-label="Ampliar foto de treino ${i + 1}">
+            <img src="${esc(galUrl(g, 600))}" width="600" height="750" alt="" loading="lazy" decoding="async"></button>`).join("")}
+        </div>
+        <p class="hint">Deslize para o lado. Toque para ampliar.</p>
       </section>`,
 
     packs: () => !list(P.pacotes).length ? "" : `
@@ -319,8 +364,8 @@ const P = {
         ${P.demo ? `<p>Foto da prévia: <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Unsplash</a>.</p>` : ""}
       </footer>`,
 
-    lightbox: () => !coverSrc ? "" : `<dialog class="lb" id="lb" aria-label="Foto de ${esc(P.nome)}">
-        <img src="${esc(coverSrc)}" alt="Foto de ${esc(P.nome)} ampliada">
+    lightbox: () => `<dialog class="lb" id="lb" aria-label="Foto ampliada">
+        <img id="lbImg" src="" alt="">
         <button class="lb-x" type="button" id="lbx" aria-label="Fechar foto">&times;</button>
       </dialog>`,
 
@@ -337,6 +382,7 @@ const P = {
         <main>
           ${view.actions()}
           ${view.about()}
+          ${view.gallery()}
           ${view.packs()}
           ${view.place()}
         </main>
@@ -392,11 +438,34 @@ const P = {
 
   /* toque na foto para ver em tela cheia */
   function initLightbox() {
-    const open = $("#zoom"), dlg = $("#lb");
-    if (!open || !dlg || typeof dlg.showModal !== "function") return;
-    open.addEventListener("click", () => { dlg.showModal(); document.body.style.overflow = "hidden"; });
+    const dlg = $("#lb"), img = $("#lbImg");
+    if (!dlg || typeof dlg.showModal !== "function") return;
+    let opener = null;
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest("[data-full]");
+      if (!trigger) return;
+      opener = trigger;
+      img.src = trigger.dataset.full; img.alt = trigger.dataset.alt || "";
+      dlg.showModal(); document.body.style.overflow = "hidden";
+    });
     dlg.addEventListener("click", () => dlg.close());                       // toque em qualquer lugar fecha
-    dlg.addEventListener("close", () => { document.body.style.overflow = ""; open.focus(); });
+    dlg.addEventListener("close", () => { document.body.style.overflow = ""; opener?.focus({ preventScroll: true }); });
+  }
+
+  /* a foto da capa só aparece quando terminou de carregar (evita "pulo" em conexão lenta) */
+  function initCoverImage() {
+    const img = $(".cover-img"); if (!img) return;
+    const show = () => img.classList.add("ready");
+    if (img.complete && img.naturalWidth) show(); else { img.addEventListener("load", show, { once: true }); img.addEventListener("error", show, { once: true }); setTimeout(show, 2500); }
+  }
+
+  /* vibração leve ao tocar nos botões (Android; em outros aparelhos não faz nada) */
+  function initHaptics() {
+    if (!navigator.vibrate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    document.addEventListener("click", (e) => {
+      if (!e.isTrusted || !e.target.closest(".btn, .slide, .cover-btn")) return;   // só em toques reais
+      try { navigator.vibrate(8); } catch (_) { /* sem suporte: ignora */ }
+    });
   }
 
   /* dados estruturados para o Google (só na página real) */
@@ -421,6 +490,8 @@ const P = {
   initReveal();
   initShare();
   initLightbox();
+  initCoverImage();
+  initHaptics();
   injectJsonLd();
 })();
 </script>
