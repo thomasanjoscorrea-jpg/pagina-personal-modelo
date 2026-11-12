@@ -507,8 +507,11 @@ if (gal) { const step = () => gal.querySelector(".slide").offsetWidth + 12;
 
 /* ---------- aberto agora ---------- */
 (function(){
-  const now = new Date(), d = now.getDay(), m = now.getHours()*60 + now.getMinutes();
-  const toM = s => { const [h,mi] = s.split(":").map(Number); return h*60+mi; };
+  /* sempre no horário de Brasília, mesmo que o visitante esteja em outro fuso */
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  const d = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(get("weekday")), m = Number(get("hour"))*60 + Number(get("minute"));
+  const toM = s => { const [h,mi] = String(s).split(":").map(Number); return h*60+(mi||0); };
   let open = false;
   P.local.horarios.forEach((h,i) => {
     if (h.dias.includes(d)) {
@@ -517,7 +520,7 @@ if (gal) { const step = () => gal.querySelector(".slide").offsetWidth + 12;
     }
   });
   document.getElementById("dot").classList.toggle("on", open);
-  document.getElementById("openTxt").textContent = (open ? "Atendendo agora" : "Fora do horário") + ", " + P.cidade;
+  document.getElementById("openTxt").textContent = [open ? "Atendendo agora" : "Fora do horário", P.cidade].filter(Boolean).join(", ");
 })();
 
 /* ---------- quiz: uma pergunta por tela ---------- */
@@ -534,7 +537,11 @@ function quiz(){
     qz.innerHTML = `<div class="bars">${QS.map((_,n)=>`<i class="${n<=qs.i?"on":""}"></i>`).join("")}</div>
       <p class="qq">${Q.q}</p><div class="qo">${Q.o.map(o=>`<button type="button" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>
       ${qs.i>0?`<button class="back" type="button" id="qback">Voltar</button>`:""}`;
-    qz.querySelectorAll(".qo button").forEach(b => b.onclick = () => { qs.a[Q.k] = b.dataset.v; qs.i++; setTimeout(quiz, 160); });
+    /* trava os botões após o primeiro toque: dois toques rápidos não pulam pergunta */
+    qz.querySelectorAll(".qo button").forEach(b => b.onclick = () => {
+      qz.querySelectorAll(".qo button").forEach(x => x.disabled = true);
+      qs.a[Q.k] = b.dataset.v; qs.i++; setTimeout(quiz, 160);
+    });
     const bk = document.getElementById("qback"); if (bk) bk.onclick = () => { qs.i--; quiz(); };
     return;
   }
