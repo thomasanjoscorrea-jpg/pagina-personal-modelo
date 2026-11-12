@@ -188,6 +188,15 @@ details p{padding:0 20px 18px;color:#d6dbe3;font-size:15px}
 footer.site{border-top:1px solid var(--line);padding:26px 0 110px;color:var(--mut);font-size:13px;text-align:center}
 footer.site a{color:var(--txt);font-weight:600}
 
+/* FOTOS */
+.pic{width:100%;border-radius:var(--r);border:1px solid var(--line);background:var(--card2) center/cover no-repeat;aspect-ratio:16/10;margin-bottom:26px}
+.gal{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+.gal .g{border-radius:16px;border:1px solid var(--line);background:var(--card2) center/cover no-repeat;aspect-ratio:1/1;position:relative;overflow:hidden}
+.gal .g::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(11,14,19,.55))}
+@media(min-width:760px){.gal{grid-template-columns:repeat(4,1fr);gap:14px}.gal .g{aspect-ratio:3/4}}
+.final.bgimg{background:linear-gradient(180deg,rgba(11,14,19,.88),rgba(11,14,19,.8)),var(--fbg) center/cover no-repeat}
+.credit{margin-top:8px;font-size:12px}
+
 /* WHATS FLUTUANTE */
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(11,14,19,0),var(--bg) 40%)}
 .bar .btn{width:100%;max-width:520px;margin:0 auto;display:flex;box-shadow:0 8px 24px rgba(37,211,102,.3)}
@@ -218,7 +227,15 @@ const P = {
   cref: "CREF 000000-G/PR",
   headline: "Treino sob medida para o <em>seu</em> corpo e a sua rotina",
   tagline: "Avaliação, treino individualizado e acompanhamento de perto. Do primeiro treino à rotina que fica.",
-  foto: "",                        // "foto.jpg" ou link. Vazio = iniciais
+  foto: "",                        // foto REAL do personal ("foto.jpg" ou link). Se preencher, ela substitui a do topo
+  /* Fotos de banco gratuito (Unsplash) só para a PRÉVIA. Na página real, troque por fotos do próprio personal
+     (ou deixe fotos: {} para não mostrar nenhuma). Valores = código da foto no Unsplash. */
+  fotos: {
+    hero:  "photo-1758875568932-0eefd3e60090",
+    sobre: "photo-1758875569399-99a7d80ace43",
+    fundo: "photo-1517838277536-f5f99be501cd",
+    galeria: ["photo-1571019614242-c5c5dee9f50b","photo-1534258936925-c58bed479fcb","photo-1758875569256-f37c438cac65","photo-1648542036561-e1d66a5ae2b1"]
+  },
   whatsapp: "5544999999999",       // DDI + DDD + número, só dígitos
   instagram: "rafael.personal",
   cidade: "Mandaguari - PR",
@@ -293,6 +310,9 @@ const P = {
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const first = P.nome.split(/\s+/)[0];
+const U = (id,w,h) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&h=${h}&q=70`;
+const F = P.fotos || {};
+const heroImg = P.foto || (F.hero ? U(F.hero,800,1000) : "");
 const wa = t => `https://wa.me/${P.whatsapp}?text=${encodeURIComponent(t)}`;
 const ini = P.nome.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 const mq = encodeURIComponent(P.local.endereco);
@@ -334,7 +354,7 @@ ${P.demo ? `<div class="demo">PRÉVIA: nomes, números, depoimentos e endereço 
       </div>
     </div>
     <div class="photo">
-      <div class="frame" ${P.foto?`style="background-image:url('${esc(P.foto)}')"`:""} role="img" aria-label="Foto de ${esc(P.nome)}">${P.foto?"":esc(ini)}</div>
+      <div class="frame" ${heroImg?`style="background-image:url('${esc(heroImg)}')"`:""} role="img" aria-label="Foto de ${esc(P.nome)}">${heroImg?"":esc(ini)}</div>
       ${P.cref?`<div class="float f2">${esc(P.cref)}</div>`:""}
       <div class="float f1"><div>${esc(P.stats[0]?P.stats[0].n+P.stats[0].suf:"")}<small>${esc(P.stats[0]?P.stats[0].l:"")}</small></div></div>
     </div>
@@ -350,6 +370,7 @@ ${P.demo ? `<div class="demo">PRÉVIA: nomes, números, depoimentos e endereço 
     <div class="chips">${P.destaques.map(d=>`<span class="chip">${esc(d)}</span>`).join("")}</div>
   </div>
   <div class="reveal">
+    ${F.sobre?`<div class="pic" style="background-image:url('${esc(U(F.sobre,900,560))}')" role="img" aria-label="Atendimento individual com acompanhamento"></div>`:""}
     <div class="eyebrow">Formação e trajetória</div>
     <div class="tl">${P.formacao.map(f=>`<div><b>${esc(f.ano)}</b><span>${esc(f.txt)}</span></div>`).join("")}</div>
   </div>
@@ -365,7 +386,12 @@ ${P.demo ? `<div class="demo">PRÉVIA: nomes, números, depoimentos e endereço 
   <div class="steps">${P.metodo.map(m=>`<div class="step reveal"><h3>${esc(m.t)}</h3><p>${esc(m.d)}</p></div>`).join("")}</div>
 </div></section>
 
-<section id="pacotes"><div class="wrap">
+${(F.galeria&&F.galeria.length)?`<section id="treinos"><div class="wrap">
+  <div class="head reveal"><div class="eyebrow">Na prática</div><h2>Treino de perto, em cada detalhe</h2><p class="lead">Correção de movimento, carga certa e atenção ao seu corpo em todas as sessões.</p></div>
+  <div class="gal">${F.galeria.map((g,i)=>`<div class="g reveal" style="background-image:url('${esc(U(g,600,800))}')" role="img" aria-label="Foto de treino ${i+1}"></div>`).join("")}</div>
+</div></section>`:""}
+
+<section id="pacotes" class="alt"><div class="wrap">
   <div class="head reveal"><div class="eyebrow">Pacotes</div><h2>Escolha como quer treinar</h2><p class="lead">Os valores variam conforme frequência e objetivo. Toque em um pacote e eu te passo as condições.</p></div>
   <div class="packs">${P.pacotes.map(k=>`
     <article class="pack reveal ${k.destaque?"hot":""}" data-id="${esc(k.id)}">
@@ -431,7 +457,7 @@ ${hasQuotes?`<section id="depoimentos"><div class="wrap">
   </div>
 </div></section>
 
-<section class="final"><div class="wrap reveal">
+<section class="final ${F.fundo?"bgimg":""}" ${F.fundo?`style="--fbg:url('${esc(U(F.fundo,1400,800))}')"`:""}><div class="wrap reveal">
   <div class="eyebrow">Vamos começar?</div>
   <h2>Sua primeira aula está a uma mensagem de distância</h2>
   <p class="lead">Me chama no WhatsApp e a gente combina a avaliação inicial.</p>
@@ -441,7 +467,7 @@ ${hasQuotes?`<section id="depoimentos"><div class="wrap">
   </div>
 </div></section>
 
-<footer class="site"><div class="wrap">© ${new Date().getFullYear()} ${esc(P.nome)}${P.cref?" · "+esc(P.cref):""} · ${esc(P.cidade)}<br>Os resultados variam de pessoa para pessoa. Procure orientação médica antes de iniciar qualquer atividade física.</div></footer>
+<footer class="site"><div class="wrap">© ${new Date().getFullYear()} ${esc(P.nome)}${P.cref?" · "+esc(P.cref):""} · ${esc(P.cidade)}<br>Os resultados variam de pessoa para pessoa. Procure orientação médica antes de iniciar qualquer atividade física.${P.demo?`<div class="credit">Fotos da prévia: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>. Na página real entram as fotos do próprio personal.</div>`:""}</div></footer>
 
 <div class="bar"><a class="btn btn-wa" href="${wa(`Olá, ${first}! Vim pelo seu site.`)}">${WA} Falar no WhatsApp</a></div>
 `;
